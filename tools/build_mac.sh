@@ -21,5 +21,6 @@ codesign --verify --deep --strict "$bundle"
 file "$bundle/Contents/MacOS/DreamBack"
 mkdir -p build
 ditto --noextattr --norsrc "$bundle" build/DreamBack.plugin
+xattr -dr com.apple.FinderInfo build/DreamBack.plugin 2>/dev/null || true
 codesign --verify --deep --strict build/DreamBack.plugin
 echo "Built build/DreamBack.plugin (ad-hoc signed, not notarized)"

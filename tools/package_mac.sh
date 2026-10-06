@@ -9,4 +9,8 @@ cp README.md "$package/README.md"
 cp demo/DreamBack_Demo.jsx "$package/demo/"
 cp docs/VALIDATION.md docs/SDK_NOTES.md "$package/docs/"
 ditto -c -k --noextattr --norsrc --keepParent "$package" output/DreamBack-0.1-mac.zip
+verify_dir=$(mktemp -d "${TMPDIR:-/tmp}/dreamback-package.XXXXXX")
+trap 'rm -rf "$verify_dir"' EXIT
+ditto -x -k output/DreamBack-0.1-mac.zip "$verify_dir"
+codesign --verify --deep --strict "$verify_dir/DreamBack-0.1-mac/DreamBack.plugin"
 echo 'Packaged output/DreamBack-0.1-mac.zip'

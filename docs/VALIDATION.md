@@ -4,7 +4,7 @@
 
 - C++ core synthetic-image checks pass: Feedback zero, Mix zero, depth zero, opaque Screen visibility, Mix once, historical position propagation, rotation gesture after hold, disappearing source element, transparent history, premultiplied Overlay channels, geometric coverage independent of alpha, early frames, order independence, cancellation, bounded allocation, display-space PAR rotation.
 - Adapter harness passes with AddressSanitizer and UndefinedBehaviorSanitizer: parameter registration/keyframeability, runtime/PiPL metadata, unique temporal checkout IDs and times, historical parameter calls, 8/16-bit comparison, padded row safety, output ROI/full-frame equality, half-resolution geometry, negative times, seek repeatability, cancellation cleanup, format rejection, checkout failure cleanup, remap/reversal rejection, pre-render without render disposal.
-- Universal arm64/x86_64 bundle built with Xcode; plist, exported entry points, and ad-hoc code signature checked.
+- Universal arm64/x86_64 bundle built with Xcode; plist, exported entry points, and ad-hoc code signature checked. The distribution ZIP is extracted to a temporary directory and its bundle passes strict signature verification. Signing takes place outside the synced workspace to avoid File Provider restoring FinderInfo during signing.
 - Core preview image inspected: nested rectangular screens and asymmetric markers show different historical angles after the outer rotation has returned to zero. `output/DreamBack-core-preview.gif` is produced by the real core on synthetic input. **It is not an AE render.** Reproduce via `tools/render_core_demo.cpp`.
 
 ## Actual AE status
