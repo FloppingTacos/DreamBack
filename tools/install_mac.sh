@@ -9,5 +9,5 @@ target="$app_dir/Plug-ins/DreamBack.plugin"
 if [[ -e "$target" ]]; then
   echo "Already installed: $target. Move the existing bundle aside before replacing it." >&2;exit 1
 fi
-ditto "$bundle" "$target"
+ditto --noextattr --norsrc "$bundle" "$target"
 echo "Installed $target. Restart that version of After Effects after saving your work."

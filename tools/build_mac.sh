@@ -20,7 +20,9 @@ codesign --force --sign - "$bundle"
 codesign --verify --deep --strict "$bundle"
 file "$bundle/Contents/MacOS/DreamBack"
 mkdir -p build
+ditto -c -k --noextattr --norsrc --keepParent "$bundle" build/DreamBack.plugin.zip
 ditto --noextattr --norsrc "$bundle" build/DreamBack.plugin
-xattr -dr com.apple.FinderInfo build/DreamBack.plugin 2>/dev/null || true
-codesign --verify --deep --strict build/DreamBack.plugin
+# The copied directory may acquire FinderInfo immediately in an iCloud/File
+# Provider workspace. The signed staging bundle and attribute-free ZIP are
+# authoritative; package_mac.sh also verifies the extracted distribution.
 echo "Built build/DreamBack.plugin (ad-hoc signed, not notarized)"
