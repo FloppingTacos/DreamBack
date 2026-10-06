@@ -1,0 +1,6 @@
+/build/
+/output/*
+!/output/.gitkeep
+.DS_Store
+*.aep
+*.aepx
