@@ -116,8 +116,9 @@ if(typeof module!=='undefined')module.exports=DBExpressions;
 /* AE integration. Every mutation is initiated by a panel action and undoable. */
 var DBRig=(function(){
     var prefix='DB2|',serial=0,blurMatch='TumoiYorozu FastCameraLensBlur';
-    function meta(layer){var m=/(?:^|\n)DB2\|([A-Za-z0-9_-]+)\|(source|copy|controller|focus)\|(Echo|Emit)(?:\n|$)/.exec(layer.comment||'');return m?{id:m[1],role:m[2],mode:m[3]}:null;}
-    function tag(layer,id,role,mode){var s=(layer.comment||'').replace(/(?:^|\n)DB2\|[^\n]*/g,'');layer.comment=s+'\n'+prefix+id+'|'+role+'|'+mode;}
+    function comment(layer){return String(layer.comment||'').replace(/\r\n?/g,'\n');}
+    function meta(layer){var m=/(?:^|\n)DB2\|([A-Za-z0-9_-]+)\|(source|copy|controller|focus)\|(Echo|Emit)(?:\n|$)/.exec(comment(layer));return m?{id:m[1],role:m[2],mode:m[3]}:null;}
+    function tag(layer,id,role,mode){var s=comment(layer).replace(/(?:^|\n)DB2\|[^\n]*/g,'');layer.comment=s+'\n'+prefix+id+'|'+role+'|'+mode;}
     function comp(){var c=app.project&&app.project.activeItem;if(!(c instanceof CompItem))throw Error('Open a composition first.');return c;}
     function effect(layer,name){var e=layer.property('ADBE Effect Parade').property(name);if(!e)throw Error('Missing control: '+name);return e.property(1);}
     function add(layer,name,value,choices){var fx=layer.property('ADBE Effect Parade'),n=fx.numProperties+1;fx.addProperty(choices?'ADBE Dropdown Control':'ADBE Slider Control');
@@ -126,10 +127,19 @@ var DBRig=(function(){
     function source(c){var index=Math.round(effect(c,'DB Source').value);if(index<1||index>c.containingComp.numLayers)throw Error('Source layer was removed.');return c.containingComp.layer(index);}
     function focus(c){var i=Math.round(effect(c,'DB Focus').value);return i>0?c.containingComp.layer(i):null;}
     function copies(c){var a=[],m=meta(c),co=c.containingComp;for(var i=1;i<=co.numLayers;i++){var l=co.layer(i),t=meta(l);if(t&&t.id===m.id&&t.role==='copy')a.push(l);}a.sort(function(a,b){return effect(a,'DB Slot').value-effect(b,'DB Slot').value;});return a;}
-    function resolve(){var co=comp(),selected=co.selectedLayers;if(!selected.length)throw Error('Select the source, controller, focus target, or a generated copy.');var m=meta(selected[0]);if(!m)throw Error('Selected layer is not part of a DreamBack system.');
-        for(var i=1;i<=co.numLayers;i++){var l=co.layer(i),t=meta(l);if(t&&t.id===m.id&&t.role==='controller')return l;}throw Error('DreamBack controller was removed.');}
+    function resolve(preferred,mode){var co;
+        try{co=comp();}catch(noComp){try{co=preferred.containingComp;}catch(stale){throw noComp;}}
+        var selected=co.selectedLayers,id=null;
+        for(var j=0;j<selected.length;j++){var m=meta(selected[j]);if(m){if(id&&id!==m.id)throw Error('Select layers from only one DreamBack system.');id=m.id;}}
+        var controllers=[];
+        for(var i=1;i<=co.numLayers;i++){var l=co.layer(i),t=meta(l);if(t&&t.role==='controller'){if(id&&t.id===id)return l;if(!mode||t.mode===mode)controllers.push(l);}}
+        if(id)throw Error('The selected system controller was removed. Undo that removal or recreate the system.');
+        try{var pm=meta(preferred);if(pm&&pm.role==='controller'&&preferred.containingComp===co&&preferred.index>0)return preferred;}catch(stalePreferred){}
+        if(controllers.length===1)return controllers[0];
+        throw Error(controllers.length?'Multiple systems found. Select a source, copy, control null or Focus null, then try again.':'No DreamBack system found in this composition. Create a system first.');
+    }
     function set(c,name,value){var p=effect(c,name);if(p.numKeys||p.expressionEnabled)p.setValueAtTime(c.containingComp.time,value);else p.setValue(value);}
-    function select(layer){var co=layer.containingComp;for(var i=1;i<=co.numLayers;i++)co.layer(i).selected=false;layer.selected=true;}
+    function select(layer){if(!layer)throw Error('The target layer was removed.');var co=layer.containingComp;for(var i=1;i<=co.numLayers;i++)co.layer(i).selected=false;layer.selected=true;}
     function blurEffect(layer){return layer.property('ADBE Effect Parade').property('DB Lens Blur');}
     function ensureBlur(layer){var e=blurEffect(layer);if(!e){var fx=layer.property('ADBE Effect Parade');if(!fx.canAddProperty(blurMatch))throw Error('Fast Camera Lens Blur is unavailable in this AE session.');e=fx.addProperty(blurMatch);e.name='DB Lens Blur';}return e;}
     function count(c){return Math.round(effect(c,'Copies (built)').value);}
@@ -145,8 +155,8 @@ var DBRig=(function(){
         for(var i=0;i<n;i++){result[i]=meta(c).mode==='Emit'?DBCore.schedule(i,n,start,end,function(t){return life.valueAtTime(t,false);},co.frameDuration):[];total+=result[i].length/2;if(result[i].join(',').length>20000)throw Error('This slot has too much timing history. Increase Life or shorten the comp.');}
         if(total>20000)throw Error('More than 20,000 births. Increase Life, shorten the comp, or reduce copies.');return result;}
     function fingerprint(c){var p=effect(c,'Life'),s=source(c),a=[s.inPoint,c.containingComp.duration,count(c),p.numKeys?'keyed':p.value,p.expression];for(var i=1;i<=p.numKeys;i++)a.push(p.keyTime(i),p.keyValue(i));return a.join('|');}
-    function storeFingerprint(c){c.comment=(c.comment||'').replace(/\nDBSIG\|[^\n]*/g,'')+'\nDBSIG|'+encodeURIComponent(fingerprint(c));}
-    function dirty(c){if(meta(c).mode!=='Emit')return false;var m=/\nDBSIG\|([^\n]*)/.exec(c.comment||'');return !m||m[1]!==encodeURIComponent(fingerprint(c))||effect(c,'Life').expressionEnabled;}
+    function storeFingerprint(c){c.comment=comment(c).replace(/\nDBSIG\|[^\n]*/g,'')+'\nDBSIG|'+encodeURIComponent(fingerprint(c));}
+    function dirty(c){if(meta(c).mode!=='Emit')return false;var m=/\nDBSIG\|([^\n]*)/.exec(comment(c));return !m||m[1]!==encodeURIComponent(fingerprint(c))||effect(c,'Life').expressionEnabled;}
     function update(c,n,blend){n=Math.round(n);if(!isFinite(n)||n<1||n>200)throw Error('Copies must be between 1 and 200.');
         var s=source(c),co=c.containingComp,m=meta(c),events=schedules(c,n),list=copies(c);
         // Validate the source and blur BEFORE removing or adding any layers.
@@ -200,8 +210,8 @@ var DBRig=(function(){
     var blendKeys=['NORMAL','ADD','SCREEN','MULTIPLY','OVERLAY','SOFT_LIGHT','HARD_LIGHT','DARKEN','LIGHTEN','DARKER_COLOR','LIGHTER_COLOR','COLOR_BURN','CLASSIC_COLOR_BURN','LINEAR_BURN','COLOR_DODGE','CLASSIC_COLOR_DODGE','LINEAR_DODGE','LINEAR_LIGHT','VIVID_LIGHT','PIN_LIGHT','HARD_MIX','DIFFERENCE','CLASSIC_DIFFERENCE','EXCLUSION','SUBTRACT','DIVIDE','HUE','SATURATION','COLOR','LUMINOSITY','DISSOLVE','DANCING_DISSOLVE','STENCIL_ALPHA','STENCIL_LUMA','SILHOUETE_ALPHA','SILHOUETTE_LUMA','ALPHA_ADD','LUMINESCENT_PREMUL'];
     var blendNames=[],blends=[];for(var bk=0;bk<blendKeys.length;bk++)if(BlendingMode[blendKeys[bk]]!==undefined){blendNames.push(blendKeys[bk].replace(/_/g,' ').toLowerCase());blends.push(BlendingMode[blendKeys[bk]]);}
     function message(s){status.text=s;w.layout.layout(true);}
-    function action(label,fn){app.beginUndoGroup('DreamBack: '+label);try{fn();message(label+' complete.');}catch(e){message(e.toString());alert('DreamBack\n'+e.toString());}finally{app.endUndoGroup();}}
-    function current(mode){if(!controller)throw Error('Create or load a system first.');if(DBRig.meta(controller).mode!==mode)throw Error('Load a '+mode+' system for this tab.');return controller;}
+    function action(label,fn){app.beginUndoGroup('DreamBack: '+label);try{fn();message(label+' complete.');return true;}catch(e){message(e.toString());alert('DreamBack\n'+e.toString());return false;}finally{app.endUndoGroup();}}
+    function current(mode){try{controller=DBRig.resolve(controller,mode);}catch(e){controller=null;throw e;}if(mode&&DBRig.meta(controller).mode!==mode)throw Error('The selected system is '+DBRig.meta(controller).mode+'. Use Load Selected to switch tabs.');return controller;}
     function hydrate(){if(!controller)return;loading=true;var m=DBRig.meta(controller);tabs.selection=m.mode==='Echo'?0:1;
         for(var t=0;t<views.length;t++){var ui=views[t];ui.count.text=String(DBRig.count(controller));for(var i=0;i<ui.fields.length;i++){var f=ui.fields[i],value=DBRig.effect(controller,f.def[1]).value;if(f.menu)f.input.selection=Math.max(0,Math.round(value)-1);else{f.input.text=String(Math.round(value*1000)/1000);f.slider.value=value;}}
             ui.preview.value=DBRig.effect(controller,'Preview Blur').value!==0;var list=DBRig.copies(controller);if(list.length){for(var b=0;b<blends.length;b++)if(list[0].blendingMode===blends[b])ui.blend.selection=b;}}
@@ -223,7 +233,7 @@ var DBRig=(function(){
             if(f.menu){f.input=row.add('dropdownlist',undefined,d[3]);f.input.selection=d[2]-1;f.input.preferredSize.width=170;}
             else{f.slider=row.add('slider',undefined,d[2],d[3],d[4]);f.slider.preferredSize.width=90;f.input=row.add('edittext',undefined,String(d[2]));f.input.characters=6;}
             fields.push(f);
-            (function(field){function commit(value){if(loading||!controller||DBRig.meta(controller).mode!==mode)return;action('Set '+field.def[1],function(){var c=current(mode);DBRig.set(c,field.def[1],value);if(field.def[1]==='Life')DBRig.update(c,DBRig.count(c));});hydrate();}
+            (function(field){function commit(value){if(loading)return;if(!controller){try{current(mode);}catch(noSystem){return;}}action('Set '+field.def[1],function(){var c=current(mode);DBRig.set(c,field.def[1],value);if(field.def[1]==='Life')DBRig.update(c,DBRig.count(c));});hydrate();}
                 if(field.menu)field.input.onChange=function(){if(field.input.selection)commit(field.input.selection.index+1);};
                 else{field.slider.onChanging=function(){field.input.text=String(Math.round(field.slider.value*1000)/1000);};field.slider.onChange=function(){commit(field.slider.value);};field.input.onChange=function(){var v=Number(field.input.text);if(!isFinite(v)){message('Enter a number.');return;}field.slider.value=v;commit(v);};}
             }(f));
@@ -237,13 +247,13 @@ var DBRig=(function(){
         var ui={count:count,fields:fields,blend:blend,preview:preview};views.push(ui);
         create.onClick=function(){action('Create '+mode,function(){var playback=1;for(var i=0;i<fields.length;i++)if(fields[i].def[1]==='Playback Mode')playback=fields[i].input.selection.index+1;
             var setup={};for(var f=0;f<fields.length;f++)setup[fields[f].def[1]]=fields[f].menu?fields[f].input.selection.index+1:Number(fields[f].input.text);controller=DBRig.create(mode,Number(count.text),playback,blends[blend.selection.index],setup);});hydrate();};
-        load.onClick=function(){try{controller=DBRig.resolve();hydrate();}catch(e){message(e.toString());}};
+        load.onClick=function(){try{controller=DBRig.resolve(controller);hydrate();}catch(e){message(e.toString());}};
         update.onClick=function(){action('Update Copies',function(){controller=DBRig.update(current(mode),Number(count.text),blends[blend.selection.index]);});hydrate();};
         prepare.onClick=function(){action('Prepare Source',function(){DBRig.prepare();});};
-        reveal.onClick=function(){try{DBRig.select(current(mode));message('Controller selected. Press U to reveal its keyframes.');}catch(e){message(e.toString());}};
-        target.onClick=function(){try{var f=DBRig.focus(current(mode));if(f)DBRig.select(f);message('Focus target selected. Move or rotate it in the Composition view.');}catch(e){message(e.toString());}};
-        preview.onClick=function(){action('Preview Blur',function(){DBRig.preview(current(mode),preview.value);});};
-        blend.onChange=function(){if(loading||!controller||DBRig.meta(controller).mode!==mode)return;action('Set Blending',function(){DBRig.blend(current(mode),blends[blend.selection.index]);});};
+        reveal.onClick=function(){try{DBRig.select(current());hydrate();message('Controller selected. Press U to reveal its keyframes.');}catch(e){message(e.toString());alert('DreamBack\n'+e.toString());}};
+        target.onClick=function(){try{var f=DBRig.focus(current());if(!f)throw Error('The Focus target was removed. Undo its removal or recreate the system.');DBRig.select(f);hydrate();message('Focus target selected. Move or rotate it in the Composition view.');}catch(e){message(e.toString());alert('DreamBack\n'+e.toString());}};
+        preview.onClick=function(){var requested=preview.value;var success=action('Preview Blur',function(){var c=current();DBRig.preview(c,requested);});if(success)hydrate();else preview.value=!requested;};
+        blend.onChange=function(){if(loading)return;try{current(mode);}catch(noSystem){return;}action('Set Blending',function(){DBRig.blend(current(mode),blends[blend.selection.index]);});};
         if(timing)timing.onClick=function(){action('Update Emit Timing',function(){DBRig.update(current(mode),DBRig.count(controller));});hydrate();};
         return tab;
     }

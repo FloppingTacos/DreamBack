@@ -2,7 +2,7 @@
 
 DreamBack is now an After Effects **dockable ScriptUI panel** that generates editable 3D layer systems. The native video-feedback concept has been abandoned; its code remains in Git history and on `codex/dreamback-prototype`. This branch contains the new panel only.
 
-**Status:** installable scripts built. 43 maths/generated-expression checks and 16 AE adapter mock checks pass. **Not yet verified inside AE:** the desktop UI connection timed out before the scripts could be run. `dist/DreamBack_Host_QA.jsx` provides reproducible host checks. See [validation](docs/VALIDATION.md).
+**Status:** installable scripts built. 43 maths/generated-expression checks and 25 AE adapter/panel-event mock checks pass. **User host feedback:** the initial panel opened, but system-selection actions failed after a panel reopen. That issue is fixed in the current bundle and covered by nine panel/session regression checks. **The fix is not yet verified inside AE:** the desktop UI connection timed out before the scripts could be run. `dist/DreamBack_Host_QA.jsx` provides reproducible host checks. See [validation](docs/VALIDATION.md).
 
 ## Install
 
@@ -26,7 +26,7 @@ Dependency: **Fast Camera Lens Blur** by TumoiYorozu. The installed copy was fou
 2. For shapes, text, stills, or an appearance containing animated masks/effects, use **Prepare Selected Source** first. This precomposes the selected layer and enables 3D on the result. It is undoable.
 3. Choose **Echo** or **Emit**, set Copies (1–200), and click **Create System**.
 4. Choose a control category in the panel, or select the **DreamBack Controls** null to keyframe its sliders/dropdowns directly.
-5. To revisit a system, select its source, controller, focus target, or generated copy and click **Load Selected**.
+5. To revisit a system, select its source, controller, focus target, or generated copy and click **Load Selected**. Select Controls, Select Focus and the blur toggle also resolve the selected system automatically after a panel reopen. If only one system exists in the composition, it can be found without a layer selection. Multiple systems require a selection or a previously loaded system.
 6. Change count and click **Update Copies**. Existing master-control keyframes and surviving layer identities are retained. Only this system's generated layers are removed/added.
 
 Each system has a master 3D null, an original source/emitter, a 3D Focus target, and exactly the requested number of generated copies. Copies use Layer Controls, so controller/source/target links survive renaming and reordering. Comments identify ownership; original source comments are retained. Do not delete the identifying `DB2|…` line or the layer-link controls.

@@ -50,4 +50,33 @@ R.effect(c,'Life').setValueAtTime(0,2);R.effect(c,'Life').setValueAtTime(1,4);ok
 const expr=R.copies(c)[0].tr['ADBE Position'].expression;ok(expr.includes('particle([0,2,2,4,6,4],time)'),'Life at birth baked into each recycled slot');
 R.set(c,'Playback Mode',1);ok(R.effect(c,'Playback Mode').value===1&&R.copies(c).length===2,'mode switch requires no rebuild');
 assert.throws(()=>R.update(c,0),/Copies/);checks++;
-console.log(`Passed ${checks} AE adapter mock checks (not host validation).`);
+// Regression: reopen the panel with no in-memory controller, then use the
+// three controls reported broken by the user (including the opposite tab).
+const windows=[],alerts=[];
+class Widget{
+ constructor(type,text){this.type=type;this.text=typeof text==='string'?text:'';this.children=[];this.items=Array.isArray(text)?text.map((text,index)=>({text,index})):[];this.graphics={};this.preferredSize={};this.layout={layout(){},resize(){}};this.value=false;}
+ add(type,bounds,text){const w=new Widget(type,text);w.parent=this;w.index=this.children.length;this.children.push(w);if(type==='slider')w.value=text;return w;}
+ set selection(value){this._selection=typeof value==='number'?(this.items.length?this.items[value]:this.children[value]):value;}get selection(){return this._selection;}
+ show(){}find(text){if(this.text===text)return this;for(const c of this.children){const w=c.find(text);if(w)return w;}return null;}
+}
+context.Panel=class extends Widget{};context.Window=class extends Widget{constructor(){super('window','DreamBack');windows.push(this);}};
+context.ScriptUI={newFont(){return {};}};context.BlendingMode={NORMAL:1,ADD:2,SCREEN:3,MULTIPLY:4,OVERLAY:5,SOFT_LIGHT:6,DIFFERENCE:7};
+context.app.beginUndoGroup=()=>{};context.app.endUndoGroup=()=>{};context.alert=text=>alerts.push(text);
+R.select(R.copies(c)[0]);
+vm.runInContext(fs.readFileSync('src/panel.jsx','utf8'),context);
+let panel=windows.at(-1);panel.find('Select Controls').onClick();
+ok(active.selectedLayers.length===1&&active.selectedLayers[0]===c,'Select Controls auto-loads the selected system after panel reopen');
+panel.find('Select Focus').onClick();ok(active.selectedLayers[0]===R.focus(c),'Select Focus selects the actual target');
+vm.runInContext(fs.readFileSync('src/panel.jsx','utf8'),context);panel=windows.at(-1);
+let checkbox=panel.find('Render generated Fast Camera Lens Blur');checkbox.value=false;checkbox.onClick();
+ok(alerts.length===0&&R.copies(c).every(l=>!l.fx.property('DB Lens Blur').enabled),'blur toggle auto-loads selected Focus system without an alert');
+for(const layer of active.array)layer.selected=false;
+ok(R.resolve()===c,'single-system composition auto-discovery');
+c.comment=c.comment.replace(/\n/g,'\r');R.select(c);ok(R.resolve()===c,'AE comment CR line endings preserve system discovery');
+const emitter=c;let second=new AVLayer(active);active.array.push(second);R.select(second);const echo=R.create('Echo',1,1,42);
+R.select(R.copies(echo)[0]);ok(R.resolve(emitter)===echo,'explicit selection overrides a stale loaded system');
+for(const layer of active.array)layer.selected=false;
+ok(R.resolve(emitter)===emitter&&R.resolve(null,'Echo')===echo,'cached system and tab-specific unique lookup');
+emitter.selected=true;echo.selected=true;assert.throws(()=>R.resolve(emitter),/only one/);checks++;
+for(const layer of active.array)layer.selected=false;assert.throws(()=>R.resolve(),/Multiple systems/);checks++;
+console.log(`Passed ${checks} AE adapter and panel-event mock checks (not host validation).`);

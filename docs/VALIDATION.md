@@ -3,9 +3,15 @@
 ## Verified automatically
 
 - 43 maths, schedule, generated-expression and syntax checks: monotonic/end-anchored curves; opposite bias; sphere/cube/band distinctions; hard/soft falloff; zero range; Life captured at birth; absolute source time when a slot is recycled; exclusive playback switching; source boundaries; fades; deterministic seeks; scale/Focus offsets; default stack endpoints; signed temporal sampling; blur progression; generated JSX/expressions parse.
-- 16 AE adapter mock checks: exact structural count; source/controller/focus links; source comments preserved; generated copies added/removed without replacing survivors; master keyframes preserved; unrelated layers preserved; renamed systems resolved; blur effects actually disabled; blending mode application; panel edits add current-time keys; Life changes mark timing dirty; rebuild stores its fingerprint; baked per-slot lifetime tables; playback mode changes need no recreation; invalid counts rejected.
+- 25 AE adapter/panel-event mock checks: exact structural count; source/controller/focus links; source comments preserved; generated copies added/removed without replacing survivors; master keyframes preserved; unrelated layers preserved; renamed systems resolved; blur effects actually disabled; blending mode application; panel edits add current-time keys; Life changes mark timing dirty; rebuild stores its fingerprint; baked per-slot lifetime tables; playback mode changes need no recreation; invalid counts rejected.
 - The installed Fast Camera Lens Blur binary/resources were inspected read-only: correct vendor match name and `Radius` label found. Its actual AE load/license/parameter operation is unverified.
 - Ready-to-install panel, demo and host-QA bundles generated from the source. No Adobe SDK or vendor plugin is bundled.
+
+## Panel session regression
+
+User reported that Select Controls/Select Focus did nothing and the blur checkbox required a loaded system. The initial implementation depended exclusively on a panel-local controller variable that resets when the panel is reopened or rigs are created by the separate demo script. The fix discovers the selected system, validates cached references, or finds the only matching system in the active comp. Selection buttons now display actionable errors instead of only writing an easily missed status line. Failed blur toggles restore the checkbox.
+
+Nine regression checks exercise the real panel callbacks in a ScriptUI mock: reopen then select controls/focus; reopen with a Focus target selected then disable blur; one-system auto-discovery; selection overriding cached context; cached/tab-specific lookup; ambiguous multi-system selections and comps; AE comment line-ending normalization. These are not actual AE host tests.
 
 ## Unverified host behavior
 
