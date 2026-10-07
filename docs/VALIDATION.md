@@ -1,31 +1,29 @@
-# Validation record
+# Validation — October 7, 2026
 
-## Automated results (October 6, 2026)
+## Verified automatically
 
-- C++ core synthetic-image checks pass: Feedback zero, Mix zero, depth zero, opaque Screen visibility, Mix once, historical position propagation, rotation gesture after hold, disappearing source element, transparent history, premultiplied Overlay channels, geometric coverage independent of alpha, early frames, order independence, cancellation, bounded allocation, display-space PAR rotation.
-- Adapter harness passes with AddressSanitizer and UndefinedBehaviorSanitizer: parameter registration/keyframeability, runtime/PiPL metadata, unique temporal checkout IDs and times, historical parameter calls, 8/16-bit comparison, padded row safety, output ROI/full-frame equality, half-resolution geometry, negative times, seek repeatability, cancellation cleanup, format rejection, checkout failure cleanup, remap/reversal rejection, pre-render without render disposal.
-- Universal arm64/x86_64 bundle built with Xcode; plist, exported entry points, and ad-hoc code signature checked. The distribution ZIP is extracted to a temporary directory and its bundle passes strict signature verification. Signing takes place outside the synced workspace to avoid File Provider restoring FinderInfo during signing.
-- Core preview image inspected: nested rectangular screens and asymmetric markers show different historical angles after the outer rotation has returned to zero. `output/DreamBack-core-preview.gif` is produced by the real core on synthetic input. **It is not an AE render.** Reproduce via `tools/render_core_demo.cpp`.
+- 43 maths, schedule, generated-expression and syntax checks: monotonic/end-anchored curves; opposite bias; sphere/cube/band distinctions; hard/soft falloff; zero range; Life captured at birth; absolute source time when a slot is recycled; exclusive playback switching; source boundaries; fades; deterministic seeks; scale/Focus offsets; default stack endpoints; signed temporal sampling; blur progression; generated JSX/expressions parse.
+- 16 AE adapter mock checks: exact structural count; source/controller/focus links; source comments preserved; generated copies added/removed without replacing survivors; master keyframes preserved; unrelated layers preserved; renamed systems resolved; blur effects actually disabled; blending mode application; panel edits add current-time keys; Life changes mark timing dirty; rebuild stores its fingerprint; baked per-slot lifetime tables; playback mode changes need no recreation; invalid counts rejected.
+- The installed Fast Camera Lens Blur binary/resources were inspected read-only: correct vendor match name and `Radius` label found. Its actual AE load/license/parameter operation is unverified.
+- Ready-to-install panel, demo and host-QA bundles generated from the source. No Adobe SDK or vendor plugin is bundled.
 
-## Actual AE status
+## Unverified host behavior
 
-**Not host-validated.** AE 26.3 is installed and running with an unsaved user project. The other version directories do not contain a runnable application. The application plug-in directory requires administrator access; installation returned permission denied and noninteractive sudo reported that a password is required. No plugin was installed and the existing AE project was not restarted, edited, saved, or closed.
+The After Effects native UI connection timed out before running the panel or QA script. No existing project was closed, saved, or restarted. ScriptUI rendering/docking, real AE parenting compensation, real expression evaluation, real blur binding, undo behavior and rendered visual output are unverified. Passing Node and adapter mock tests does not establish a working AE panel.
 
-The JSX demo is delivered but has not been executed in AE. Export, preview parity, isolated rendering, scrubbing, real historical input/parameter checkout behavior, and actual host cancellation remain unverified. Passing core/harness tests does not establish a working AE build.
+## Acceptance checklist
 
-## Host acceptance checklist
+1. Run `dist/DreamBack_Host_QA.jsx`. It should finish with host checks passed and no expression errors. Record AE version and full failure text if not. Undo its group to remove the generated QA rigs/folder if desired; existing project data is not saved by the script.
+2. Open the panel with Run Script File. Check both tabs, every category, resizing and dropdowns. Install as a ScriptUI panel and verify docking.
+3. Run the demo. Preview Echo with an actual camera, alpha graphics and footage. Check uniform spacing and front/back bias, X/Y steps, scale, all rotation axes, opacity curve, and blur Radius ramp.
+4. Set 10 copies, then 3, then 12. Confirm actual owned layer counts match, existing controller keyframes remain, and unrelated layers are unchanged. Select source/copy/controller/focus and reload the system after closing/reopening the panel.
+5. Keyframe controls on the null; close the panel and render. Reopen the project and panel, load the system and compare values. Rename and reorder controller/source/target layers; Layer Control links should survive.
+6. Verify signed Delay Frames, both sequence directions and all three source boundaries at source beginning/end. Test source start offset, stretch and existing time-remap keys. Use a precomp for content with animated outer effects/masks so its full appearance is retimed.
+7. Move/rotate/scale the Focus target in Sphere, Cube and Linear Band modes. Check full/half/zero influence and negative values. Animated Focus Z must not cause expression cycles. Band should ignore local X/Y distance.
+8. Emit a bouncing alpha ball. At each reuse, geometry resets while source sampling advances to the new absolute time. Switch Advancing/Hold from the dropdown after creation. Held content must remain frozen throughout one life, including when Delay or Focus Time is animated.
+9. Keyframe Life from 2 to 4 seconds, click Update Emit Timing, and confirm particles born before the change finish with their captured Life. Newly born particles take the value at their birth. Check speed-at-birth and source launch position/scale/orientation.
+10. Render a frame, jump forward/backward and rerender it. Compare preview/export, source timing and geometry. The result should not depend on render order or an open panel.
+11. Measure performance with 10, 30 and 100 copies using simple and complex sources, blur off/on, same-time vs delayed frames. Do not claim zero cost for opacity-hidden particles. Check 8/16/32 bpc subject to vendor blur support and Classic 3D vs other renderers.
+12. Check undo for Create/Update/Prepare operations and errors. Generated transforms/expressions are owned by DreamBack; use controller controls rather than manually replacing copy expressions.
 
-1. Save all work, quit AE, install `DreamBack.plugin`, and relaunch AE. Check Effect > DreamBack and About for version 0.1. Check that the default controls match the README and that all required controls have stopwatches.
-2. Run `demo/DreamBack_Demo.jsx`. Confirm it creates five 1920×1080, 30 fps demo comps and source precomps without closing the existing project. Save a separate demo AEP for subsequent export tests.
-3. Preview comp 01 at full/half/quarter resolution. Confirm the centered rectangular tunnel is visible over the opaque background. Set Feedback to 0 and then Mix to 0 separately; each should match the upstream input exactly.
-4. Preview comp 02 through 1–2.8 seconds. The outer stage holds Rotation at zero after 1.6 seconds while deeper images still show the earlier left/right gesture. Increasing Delay slows the propagation; changing Zoom affects each generation.
-5. Preview comp 03 through 2–3.8 seconds. The offset gesture must continue traveling inward after the outer offset returns to zero. Compare comp 04 at 2.95 and 3.2 seconds: the yellow element is absent in the source after 3 seconds but remains in historical screens.
-6. Preview comp 05 over its background. Look at alpha alone and disable the background. Trails must carry alpha; no black-fringe darkening or alpha-zero color should become a visible rectangle in Overlay.
-7. Purge the cache. Render frame 60 in isolation, then frames 110, 10, and 60. Compare frame 60 pixel-for-pixel against the first render. Scrub backward repeatedly and compare with forward previews.
-8. Cache a rotation sequence, change a historical Rotation keyframe around 1.2 seconds, and confirm affected later frames lose their cache and visibly update. Repeat with a source-content change at 2.5 seconds. Restore the source/keyframe afterward.
-9. Render comp 02 through the Render Queue and compare exported frames with preview at the same bit depth, color settings, and resolution. Repeat in 16 bpc. Native 32 bpc is unsupported; confirm no corrupted pixels when AE converts or rejects a float request.
-10. Enable ROI off-center; compare that rectangle to a full-frame render, including after animated Position/Rotation. Test source PAR 2:1, Half/Quarter, and independent horizontal/vertical downsampling. Test an upstream blur that expands bounds; original layer coordinates should remain stable and expanded bounds should be clipped.
-11. Test beginning/end of source, moving the layer's start time, and positive stretch. Time-remapping on the DreamBack layer and negative/zero `time_step` should show the documented error. Remapping inside the source precomp should be usable. Avoid nonlinear outer remap and preserve-frame-rate combinations until validated.
-12. Cancel a heavy preview/export. AE must remain responsive and subsequent renders must work. Try separate DreamBack layers simultaneously; no MFR support is advertised, and one instance must not influence another.
-
-Record AE version, macOS version, bit depth, color management, preview resolution, screenshots, and any exact error text before marking host acceptance complete.
+Known scope limits: one Focus target; signed-bias curves rather than drawn Bezier curves; blend setup affects copies only; camera-depth blur and shared-bound evaluation require host performance checks; Life requires timing update after direct timeline edits; no independent emission-rate control; source precomposing can change complex existing camera/parent/expression rigs, so validate those cases separately. The original source remains the emitter/leading layer, without generated-copy Focus/falloffs.
