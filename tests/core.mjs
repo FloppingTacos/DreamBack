@@ -37,7 +37,7 @@ const echo=ctx.DBExpressions.all('Echo',2,3,[]);
 ok(run(echo.position,1)[2]===360,'last copy receives full span');
 ok(run(echo.scale,1).join(',')==='100,100,100','default scale');
 controls['Delay Frames']=3;ok(Math.abs(run(echo.time,4)-3.7)<1e-10,'per-copy frame delay');
-controls['Delay Direction']=2;ok(run(echo.time,4)===4,'reverse delay anchors far end');
+controls['Delay Direction']=2;ok(Math.abs(run(echo.time,4)-3.9)<1e-10,'reverse delay preserves the same offsets in reversed order');
 controls['Maximum Blur']=15;ok(run(echo.blur,1)===15,'last copy gets maximum blur');
 controls['Focus Enabled']=2;controls['Focus Range']=1000;controls['Focus Feather']=0;controls['Focus Scale']=5;
 ok(run(echo.scale,1).join(',')==='105,105,105','Focus +5 is 5 percent');

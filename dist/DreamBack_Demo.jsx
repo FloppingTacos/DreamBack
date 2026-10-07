@@ -94,9 +94,9 @@ var DBExpressions = (function () {
         p.scale=h+'var factor=emit?(v("Start Size")+(v("End Size")-v("Start Size"))*curve(u,v("Scale Curve")))/100:Math.pow(Math.max(0.001,1+v("Scale Step")/100),N*curve(u,v("Scale Curve")));\nmul(emit?S.transform.scale.valueAtTime(A.birth):S.transform.scale.value,factor*Math.max(0,1+v("Focus Scale")*W/100));';
         var axes=['X','Y','Z'],properties=['xRotation','yRotation','zRotation'];
         for(var a=0;a<3;a++)p['rotation'+axes[a]]=h+'(emit?S.transform.'+properties[a]+'.valueAtTime(A.birth):S.transform.'+properties[a]+'.value)+v("Rotation '+axes[a]+' Step")*N*curve(u,v("Rotation Curve"))+v("Focus Rotation '+axes[a]+'")*W;';
-        var sample='var rank=emit?(v("Delay Direction")===1?N*u:N*(1-u)):(v("Delay Direction")===1?I+1:N-1-I);\n'+
+        var sample='var rank=emit?(v("Delay Direction")===1?N*u:N*(1-u)):(v("Delay Direction")===1?I+1:N-I);\n'+
             'var sampleClock=time;var offset=-v("Delay Frames")*rank*thisComp.frameDuration+v("Focus Time Frames")*W*thisComp.frameDuration;\n'+
-            'if(emit&&v("Playback Mode")===2){sampleClock=A.birth;var birthRank=vb("Delay Direction",A.birth)===1?I+1:N-1-I;var BW=0;if(vb("Focus Enabled",A.birth)===2){var BQ=F.fromWorld(C.toWorld(S.transform.position.valueAtTime(A.birth),A.birth),A.birth);BW=weight(BQ,vb("Focus Shape",A.birth),vb("Focus Range",A.birth),vb("Focus Feather",A.birth),vb("Focus Curve",A.birth));}offset=-vb("Delay Frames",A.birth)*birthRank*thisComp.frameDuration+vb("Focus Time Frames",A.birth)*BW*thisComp.frameDuration;}\n'+
+            'if(emit&&v("Playback Mode")===2){sampleClock=A.birth;var birthRank=vb("Delay Direction",A.birth)===1?I+1:N-I;var BW=0;if(vb("Focus Enabled",A.birth)===2){var BQ=F.fromWorld(C.toWorld(S.transform.position.valueAtTime(A.birth),A.birth),A.birth);BW=weight(BQ,vb("Focus Shape",A.birth),vb("Focus Range",A.birth),vb("Focus Feather",A.birth),vb("Focus Curve",A.birth));}offset=-vb("Delay Frames",A.birth)*birthRank*thisComp.frameDuration+vb("Focus Time Frames",A.birth)*BW*thisComp.frameDuration;}\n'+
             'var sampleTime=sourceClock(sampleClock+offset);\n';
         p.opacity=h+sample+'var fade='+DBCore.fade.toString()+';\n'+
             'var alpha=S.transform.opacity*(1-clamp(v("Opacity Falloff")/100,0,1)*curve(u,v("Opacity Curve")));\n'+
